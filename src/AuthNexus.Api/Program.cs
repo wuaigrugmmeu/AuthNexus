@@ -13,6 +13,9 @@ builder.Services.AddApplicationServices();
 // 添加基础设施层服务
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
+// 添加数据库初始化服务
+builder.Services.AddDbInitializer();
+
 // 添加JWT认证
 builder.Services.AddJwtAuthentication(builder.Configuration);
 

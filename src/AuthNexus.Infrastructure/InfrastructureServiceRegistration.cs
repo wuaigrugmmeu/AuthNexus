@@ -32,6 +32,7 @@ namespace AuthNexus.Infrastructure
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IRoleRepository, RoleRepository>();
             services.AddScoped<IPermissionRepository, PermissionRepository>();
+            services.AddScoped<IApplicationRepository, ApplicationRepository>();
 
             // 添加认证服务
             services.AddScoped<IPasswordHashingService, PasswordHashingService>();
