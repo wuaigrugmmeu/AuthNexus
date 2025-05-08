@@ -1,6 +1,5 @@
 using AuthNexus.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using DomainEntities = AuthNexus.Domain.Entities;
 using AuthNexus.Domain.Repositories;
 using AuthNexus.Domain.Entities;
 
@@ -9,10 +8,112 @@ namespace AuthNexus.Infrastructure.Repositories
     /// <summary>
     /// 角色仓储实现
     /// </summary>
-    public class RoleRepository : EFCoreGenericRepository<DomainEntities.Role>, IRoleRepository
+    public class RoleRepository : EFCoreGenericRepository<Role>, IRoleRepository
     {
         public RoleRepository(AuthNexusDbContext dbContext) : base(dbContext)
         {
+        }
+
+        /// <summary>
+        /// 根据ID获取角色
+        /// </summary>
+        public new async Task<Role> GetByIdAsync(Guid id)
+        {
+            var role = await _dbSet.FindAsync(id);
+            return role ?? throw new KeyNotFoundException($"未找到ID为{id}的角色");
+        }
+
+        /// <summary>
+        /// 根据应用ID和角色名称获取角色
+        /// </summary>
+        public async Task<Role> GetByNameAsync(Guid applicationId, string name)
+        {
+            var role = await _dbSet
+                .FirstOrDefaultAsync(r => r.ApplicationId == applicationId && r.Name == name);
+            
+            return role ?? throw new KeyNotFoundException($"未找到应用{applicationId}下名称为{name}的角色");
+        }
+
+        /// <summary>
+        /// 获取应用的所有角色
+        /// </summary>
+        public async Task<IEnumerable<Role>> GetByApplicationIdAsync(Guid applicationId)
+        {
+            return await _dbSet
+                .Where(r => r.ApplicationId == applicationId)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// 创建新角色
+        /// </summary>
+        public async Task<Role> CreateAsync(Role role)
+        {
+            await _dbSet.AddAsync(role);
+            await _dbContext.SaveChangesAsync();
+            return role;
+        }
+
+        /// <summary>
+        /// 更新角色
+        /// </summary>
+        public async Task<Role> UpdateAsync(Role role)
+        {
+            _dbSet.Update(role);
+            await _dbContext.SaveChangesAsync();
+            return role;
+        }
+
+        /// <summary>
+        /// 删除角色
+        /// </summary>
+        public async Task DeleteAsync(Guid id)
+        {
+            var role = await _dbSet.FindAsync(id);
+            if (role != null)
+            {
+                _dbSet.Remove(role);
+                await _dbContext.SaveChangesAsync();
+            }
+        }
+
+        /// <summary>
+        /// 检查应用中是否存在指定名称的角色
+        /// </summary>
+        public async Task<bool> ExistsByNameAsync(Guid applicationId, string name)
+        {
+            return await _dbSet.AnyAsync(r => r.ApplicationId == applicationId && r.Name == name);
+        }
+
+        /// <summary>
+        /// 获取角色及其所有权限
+        /// </summary>
+        public async Task<Role> GetWithPermissionsAsync(Guid id)
+        {
+            // 使用Include查询直接获取包含权限的角色
+            var role = await _dbContext.Roles
+                .Include(r => r.Application)
+                .FirstOrDefaultAsync(r => r.Id == id);
+                
+            if (role == null)
+            {
+                throw new KeyNotFoundException($"未找到ID为{id}的角色");
+            }
+            
+            // 注意：不再尝试直接设置只读的Permissions属性
+            // 而是使用Include加载关联数据
+            
+            return role;
+        }
+
+        /// <summary>
+        /// 根据ID列表获取多个角色
+        /// </summary>
+        public async Task<IEnumerable<Role>> GetByIdsAsync(IEnumerable<Guid> ids)
+        {
+            return await _dbSet
+                .Where(r => ids.Contains(r.Id))
+                .ToListAsync();
         }
 
         /// <summary>
@@ -70,12 +171,7 @@ namespace AuthNexus.Infrastructure.Repositories
             {
                 if (!existingPermissionIds.Contains(permissionId))
                 {
-                    _dbContext.RolePermissionAssignments.Add(new DomainEntities.RolePermissionAssignment
-                    {
-                        Id = Guid.NewGuid(),
-                        RoleId = roleId,
-                        PermissionDefinitionId = permissionId
-                    });
+                    _dbContext.RolePermissionAssignments.Add(new RolePermissionAssignment(roleId,permissionId));
                 }
             }
 

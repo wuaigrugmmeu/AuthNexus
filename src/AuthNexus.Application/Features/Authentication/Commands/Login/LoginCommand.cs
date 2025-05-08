@@ -1,5 +1,5 @@
 using AuthNexus.Application.Features.Authentication.Dtos;
-using AuthNexus.SharedKernel.Models;
+using AuthNexus.Application.Common;
 using MediatR;
 
 namespace AuthNexus.Application.Features.Authentication.Commands.Login
@@ -7,7 +7,7 @@ namespace AuthNexus.Application.Features.Authentication.Commands.Login
     /// <summary>
     /// 登录命令
     /// </summary>
-    public class LoginCommand : IRequest<Result<TokenResponseDto>>
+    public class LoginCommand : IRequest<ResultDto<TokenResponseDto>>
     {
         /// <summary>
         /// 用户名/邮箱

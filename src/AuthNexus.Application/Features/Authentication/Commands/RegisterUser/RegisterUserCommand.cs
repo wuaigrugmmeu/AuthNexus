@@ -1,5 +1,5 @@
 using AuthNexus.Application.Features.Authentication.Dtos;
-using AuthNexus.SharedKernel.Models;
+using AuthNexus.Application.Common;
 using MediatR;
 
 namespace AuthNexus.Application.Features.Authentication.Commands.RegisterUser
@@ -7,7 +7,7 @@ namespace AuthNexus.Application.Features.Authentication.Commands.RegisterUser
     /// <summary>
     /// 用户注册命令
     /// </summary>
-    public class RegisterUserCommand : IRequest<Result<UserProfileDto>>
+    public class RegisterUserCommand : IRequest<ResultDto<UserProfileDto>>
     {
         /// <summary>
         /// 用户名

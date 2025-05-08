@@ -6,6 +6,11 @@ namespace AuthNexus.Domain.Entities
     public class Permission : BaseEntity
     {
         /// <summary>
+        /// 所属应用的ID
+        /// </summary>
+        public Guid ApplicationId { get; set; }
+        
+        /// <summary>
         /// 权限名称（唯一）
         /// </summary>
         public string Name { get; set; } = string.Empty;

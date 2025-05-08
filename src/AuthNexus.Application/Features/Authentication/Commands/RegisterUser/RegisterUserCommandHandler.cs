@@ -2,7 +2,7 @@ using AuthNexus.Application.Features.Authentication.Dtos;
 using AuthNexus.Domain.Entities;
 using AuthNexus.Domain.Repositories;
 using AuthNexus.Domain.Services;
-using AuthNexus.SharedKernel.Models;
+using AuthNexus.Application.Common;
 using AutoMapper;
 using MediatR;
 
@@ -11,7 +11,7 @@ namespace AuthNexus.Application.Features.Authentication.Commands.RegisterUser
     /// <summary>
     /// 用户注册命令处理程序
     /// </summary>
-    public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, Result<UserProfileDto>>
+    public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, ResultDto<UserProfileDto>>
     {
         private readonly IUserRepository _userRepository;
         private readonly IRoleRepository _roleRepository;
@@ -33,18 +33,18 @@ namespace AuthNexus.Application.Features.Authentication.Commands.RegisterUser
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<Result<UserProfileDto>> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
+        public async Task<ResultDto<UserProfileDto>> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
         {
             // 检查用户名是否已存在
             if (await _userRepository.ExistsByUsernameAsync(request.Username))
             {
-                return Result.Failure<UserProfileDto>($"用户名 '{request.Username}' 已被使用", 400);
+                return ResultDto<UserProfileDto>.Failure($"用户名 '{request.Username}' 已被使用");
             }
 
             // 检查邮箱是否已存在
             if (await _userRepository.ExistsByEmailAsync(request.Email))
             {
-                return Result.Failure<UserProfileDto>($"邮箱 '{request.Email}' 已被使用", 400);
+                return ResultDto<UserProfileDto>.Failure($"邮箱 '{request.Email}' 已被使用");
             }
 
             // 创建新用户
@@ -78,7 +78,7 @@ namespace AuthNexus.Application.Features.Authentication.Commands.RegisterUser
             userProfileDto.Roles = roles.Select(r => r.Name).ToList();
             userProfileDto.Permissions = permissions.Select(p => p.Name).ToList();
 
-            return Result.Success(userProfileDto);
+            return ResultDto<UserProfileDto>.Success(userProfileDto);
         }
     }
 }

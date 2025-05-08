@@ -1,7 +1,6 @@
 using FluentValidation;
 using MediatR;
-using AuthNexus.SharedKernel.Exceptions;
-using ValidationException = AuthNexus.SharedKernel.Exceptions.ValidationException;
+using AuthNexus.Application.Common;
 
 namespace AuthNexus.Application.Behaviors
 {
@@ -10,6 +9,7 @@ namespace AuthNexus.Application.Behaviors
     /// </summary>
     public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
         where TRequest : IRequest<TResponse>
+        where TResponse : class
     {
         private readonly IEnumerable<IValidator<TRequest>> _validators;
 
@@ -32,16 +32,63 @@ namespace AuthNexus.Application.Behaviors
                 var failures = validationResults
                     .SelectMany(r => r.Errors)
                     .Where(f => f != null)
-                    .GroupBy(x => x.PropertyName)
-                    .ToDictionary(
-                        g => g.Key, 
-                        g => g.Select(x => x.ErrorMessage).ToArray()
-                    );
+                    .ToList();
 
-                // 如果存在验证错误，则抛出异常
+                // 如果存在验证错误
                 if (failures.Count > 0)
                 {
-                    throw new ValidationException(failures);
+                    // 根据 TResponse 类型处理验证失败
+                    // 判断 TResponse 是否为 ResultDto<T> 类型
+                    if (typeof(TResponse).IsGenericType && 
+                        typeof(TResponse).GetGenericTypeDefinition() == typeof(ResultDto<>))
+                    {
+                        // 构建错误消息
+                        var errorMessage = string.Join("; ", failures.Select(f => $"{f.PropertyName}: {f.ErrorMessage}"));
+                        
+                        // 创建一个失败的 ResultDto<T> 实例
+                        var resultType = typeof(TResponse);
+                        var resultGenericArg = resultType.GetGenericArguments()[0];
+                        var failureMethod = typeof(ResultDto<>)
+                            .MakeGenericType(resultGenericArg)
+                            .GetMethod("Failure", new[] { typeof(string) });
+                        
+                        if (failureMethod == null)
+                        {
+                            throw new InvalidOperationException($"无法找到 ResultDto<{resultGenericArg.Name}>.Failure 方法");
+                        }
+
+                        var result = failureMethod.Invoke(null, new object[] { errorMessage });
+                        if (result == null)
+                        {
+                            throw new InvalidOperationException($"ResultDto<{resultGenericArg.Name}>.Failure 方法返回了 null");
+                        }
+                        
+                        return (TResponse)result;
+                    }
+                    else if (typeof(TResponse) == typeof(ResultDto))
+                    {
+                        // 处理非泛型 ResultDto
+                        var errorMessage = string.Join("; ", failures.Select(f => $"{f.PropertyName}: {f.ErrorMessage}"));
+                        var result = ResultDto.Failure(errorMessage);
+                        if (result == null)
+                        {
+                            throw new InvalidOperationException("ResultDto.Failure 方法返回了 null");
+                        }
+                        return (TResponse)(object)result;
+                    }
+                    else
+                    {
+                        // 对于不是 ResultDto 类型的响应，仍然抛出异常
+                        var failuresDict = failures
+                            .GroupBy(x => x.PropertyName)
+                            .ToDictionary(
+                                g => g.Key, 
+                                g => g.Select(x => x.ErrorMessage).ToArray()
+                            );
+                        
+                        var errorMessage = string.Join("; ", failures.Select(f => $"{f.PropertyName}: {f.ErrorMessage}"));
+                        throw new ValidationException(errorMessage);
+                    }
                 }
             }
 

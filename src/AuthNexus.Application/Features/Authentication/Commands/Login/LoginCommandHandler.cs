@@ -1,5 +1,6 @@
 using AuthNexus.Application.Features.Authentication.Dtos;
 using AuthNexus.Domain.Repositories;
+using AuthNexus.Application.Common;
 using MediatR;
 using AuthNexus.Domain.Services;
 
@@ -8,7 +9,7 @@ namespace AuthNexus.Application.Features.Authentication.Commands.Login
     /// <summary>
     /// 登录命令处理程序
     /// </summary>
-    public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<TokenResponseDto>>
+    public class LoginCommandHandler : IRequestHandler<LoginCommand, ResultDto<TokenResponseDto>>
     {
         private readonly IUserRepository _userRepository;
         private readonly IPasswordHashingService _passwordHashingService;
@@ -24,19 +25,19 @@ namespace AuthNexus.Application.Features.Authentication.Commands.Login
             _jwtTokenGenerator = jwtTokenGenerator;
         }
 
-        public async Task<Result<TokenResponseDto>> Handle(LoginCommand request, CancellationToken cancellationToken)
+        public async Task<ResultDto<TokenResponseDto>> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
             // 查找用户
             var user = await _userRepository.GetByUsernameOrEmailAsync(request.Username);
             if (user == null)
             {
-                return Result.Failure<TokenResponseDto>("用户名或密码不正确", 401);
+                return ResultDto<TokenResponseDto>.Failure("用户名或密码不正确");
             }
 
             // 验证密码
             if (!_passwordHashingService.VerifyPassword(request.Password, user.PasswordHash))
             {
-                return Result.Failure<TokenResponseDto>("用户名或密码不正确", 401);
+                return ResultDto<TokenResponseDto>.Failure("用户名或密码不正确");
             }
 
             // 获取用户角色和权限
@@ -58,7 +59,7 @@ namespace AuthNexus.Application.Features.Authentication.Commands.Login
                 ExpiresIn = tokenResponse.ExpiresIn
             };
 
-            return Result.Success(tokenResponseDto);
+            return ResultDto<TokenResponseDto>.Success(tokenResponseDto);
         }
     }
 }
