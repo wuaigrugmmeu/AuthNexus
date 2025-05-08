@@ -39,7 +39,7 @@ namespace AuthNexus.Api.Controllers
         [Authorize(Policy = PolicyNames.RequirePermission)] // 需要查看应用的权限
         public async Task<ActionResult<ApplicationDto>> GetApplicationById(Guid id)
         {
-            var result = await _applicationService.GetApplicationByIdAsync(id.ToString());
+            var result = await _applicationService.GetApplicationAsync(id.ToString());
             if (!result.IsSuccess)
             {
                 return NotFound(result);
@@ -69,12 +69,12 @@ namespace AuthNexus.Api.Controllers
         [Authorize(Policy = PolicyNames.RequireAdminRole)] // 需要管理员角色
         public async Task<ActionResult<ApplicationDto>> UpdateApplication(Guid id, [FromBody] UpdateApplicationRequest request)
         {
-            if (id.ToString() != request.Id)
+            if (id != request.Id)
             {
                 return BadRequest("应用ID不匹配");
             }
 
-            var result = await _applicationService.UpdateApplicationAsync(request);
+            var result = await _applicationService.UpdateApplicationAsync(id.ToString(), request);
             if (!result.IsSuccess)
             {
                 return BadRequest(result);
@@ -89,7 +89,7 @@ namespace AuthNexus.Api.Controllers
         [Authorize(Policy = PolicyNames.RequireAdminRole)] // 需要管理员角色
         public async Task<ActionResult> DeleteApplication(Guid id)
         {
-            var result = await _applicationService.DeleteApplicationAsync(id.ToString());
+            var result = await _applicationService.DisableApplicationAsync(id.ToString());
             if (!result.IsSuccess)
             {
                 return BadRequest(result);
@@ -104,7 +104,7 @@ namespace AuthNexus.Api.Controllers
         [Authorize(Policy = PolicyNames.RequireAdminRole)] // 需要管理员角色
         public async Task<ActionResult<ApplicationRegistrationResultDto>> RegenerateApplicationKey(Guid id)
         {
-            var result = await _applicationService.RegenerateApplicationKeyAsync(id.ToString());
+            var result = await _applicationService.RegenerateKeysAsync(id);
             if (!result.IsSuccess)
             {
                 return BadRequest(result);

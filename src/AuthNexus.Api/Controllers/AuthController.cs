@@ -43,7 +43,7 @@ namespace AuthNexus.Api.Controllers
                 return Ok(result.Data);
             }
 
-            return StatusCode(result.ErrorCode ?? 500, new { Message = result.Error });
+            return StatusCode(401, new { Message = result.ErrorMessage });
         }
 
         /// <summary>
@@ -71,7 +71,7 @@ namespace AuthNexus.Api.Controllers
                 return CreatedAtAction(nameof(GetMyProfile), result.Data);
             }
 
-            return StatusCode(result.ErrorCode ?? 500, new { Message = result.Error });
+            return StatusCode(400, new { Message = result.ErrorMessage });
         }
 
         /// <summary>
@@ -93,7 +93,7 @@ namespace AuthNexus.Api.Controllers
                 return Ok(result.Data);
             }
 
-            return StatusCode(result.ErrorCode ?? 500, new { Message = result.Error });
+            return StatusCode(result.ErrorCode ?? 404, new { Message = result.Error });
         }
     }
 }

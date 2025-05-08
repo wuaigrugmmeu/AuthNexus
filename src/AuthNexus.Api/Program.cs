@@ -3,17 +3,9 @@ using AuthNexus.Api.Filters;
 using AuthNexus.Application;
 using AuthNexus.Infrastructure;
 using AuthNexus.Infrastructure.Data;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// 配置Serilog
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.FromLogContext()
-    .CreateLogger();
-
-builder.Host.UseSerilog();
 
 // 添加应用层服务
 builder.Services.AddApplicationServices();
@@ -33,6 +25,11 @@ builder.Services.AddControllers(options =>
     // 添加模型验证过滤器
     options.Filters.Add<ModelValidationFilter>();
 });
+
+// 添加日志
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 
 // 添加Swagger配置
 builder.Services.AddSwaggerConfiguration();

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AuthNexus.SharedKernel")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4c4906568da6ef83c32ecb5bbcf6bf7e4e49984a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c5614fe15ddc6b1985439217774453b06b1bb94d")]
 [assembly: System.Reflection.AssemblyProductAttribute("AuthNexus.SharedKernel")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AuthNexus.SharedKernel")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
