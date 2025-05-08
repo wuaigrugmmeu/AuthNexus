@@ -2,23 +2,21 @@ using AuthNexus.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using DomainEntities = AuthNexus.Domain.Entities;
 using AuthNexus.Domain.Repositories;
+using AuthNexus.Domain.Entities;
 
 namespace AuthNexus.Infrastructure.Repositories;
 
 /// <summary>
 /// 用户仓储实现
 /// </summary>
-public class UserRepository : IUserRepository
+public class UserRepository : EFCoreGenericRepository<DomainEntities.User>, IUserRepository
 {
-    private readonly AuthNexusDbContext _dbContext;
-
-    public UserRepository(AuthNexusDbContext dbContext)
+    public UserRepository(AuthNexusDbContext dbContext) : base(dbContext)
     {
-        _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
     }
 
     /// <summary>
-    /// 根据ID获取用户
+    /// 根据ID获取用户身份
     /// </summary>
     public async Task<DomainEntities.UserIdentity> GetByIdAsync(Guid id)
     {
@@ -236,5 +234,118 @@ public class UserRepository : IUserRepository
         // 检查这些角色是否拥有此权限
         return await _dbContext.RolePermissionAssignments
             .AnyAsync(rp => roleIds.Contains(rp.RoleId) && rp.PermissionDefinitionId == permission.Id);
+    }
+
+    /// <summary>
+    /// 根据用户名或邮箱获取用户
+    /// </summary>
+    public async Task<User?> GetByUsernameOrEmailAsync(string usernameOrEmail)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(u => u.Username == usernameOrEmail || u.Email == usernameOrEmail);
+    }
+
+    /// <summary>
+    /// 检查用户名是否已存在
+    /// </summary>
+    public async Task<bool> ExistsByUsernameAsync(string username)
+    {
+        return await _dbSet.AnyAsync(u => u.Username == username);
+    }
+
+    /// <summary>
+    /// 检查邮箱是否已存在
+    /// </summary>
+    public async Task<bool> ExistsByEmailAsync(string email)
+    {
+        return await _dbSet.AnyAsync(u => u.Email == email);
+    }
+
+    /// <summary>
+    /// 获取用户的角色
+    /// </summary>
+    public async Task<IReadOnlyList<Role>> GetUserRolesAsync(Guid userId)
+    {
+        var roleIds = await _dbContext.UserRoleAssignments
+            .Where(ur => ur.UserIdentityId == userId)
+            .Select(ur => ur.RoleId)
+            .ToListAsync();
+
+        return await _dbContext.Roles
+            .Where(r => roleIds.Contains(r.Id))
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// 获取用户的权限
+    /// </summary>
+    public async Task<IReadOnlyList<Permission>> GetUserPermissionsAsync(Guid userId)
+    {
+        // 获取用户的直接权限ID
+        var directPermissionIds = await _dbContext.UserDirectPermissionAssignments
+            .Where(up => up.UserIdentityId == userId)
+            .Select(up => up.PermissionDefinitionId)
+            .ToListAsync();
+
+        // 获取用户角色的权限ID
+        var roleIds = await _dbContext.UserRoleAssignments
+            .Where(ur => ur.UserIdentityId == userId)
+            .Select(ur => ur.RoleId)
+            .ToListAsync();
+
+        var rolePermissionIds = await _dbContext.RolePermissionAssignments
+            .Where(rp => roleIds.Contains(rp.RoleId))
+            .Select(rp => rp.PermissionDefinitionId)
+            .ToListAsync();
+
+        // 合并并去重
+        var allPermissionIds = directPermissionIds.Union(rolePermissionIds).Distinct();
+
+        return await _dbContext.PermissionDefinitions
+            .Where(p => allPermissionIds.Contains(p.Id))
+            .Select(p => new Permission
+            {
+                Id = p.Id,
+                ApplicationId = p.ApplicationId,
+                Name = p.Code,
+                Description = p.Description
+            })
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// 为用户分配角色
+    /// </summary>
+    public async Task AssignRoleToUserAsync(Guid userId, Guid roleId)
+    {
+        var exists = await _dbContext.UserRoleAssignments
+            .AnyAsync(ur => ur.UserIdentityId == userId && ur.RoleId == roleId);
+
+        if (!exists)
+        {
+            _dbContext.UserRoleAssignments.Add(new DomainEntities.UserRoleAssignment
+            {
+                Id = Guid.NewGuid(),
+                UserIdentityId = userId,
+                RoleId = roleId
+            });
+
+            await _dbContext.SaveChangesAsync();
+        }
+    }
+
+    /// <summary>
+    /// 移除用户的角色
+    /// </summary>
+    public async Task RemoveRoleFromUserAsync(Guid userId, Guid roleId)
+    {
+        var assignment = await _dbContext.UserRoleAssignments
+            .FirstOrDefaultAsync(ur => ur.UserIdentityId == userId && ur.RoleId == roleId);
+
+        if (assignment != null)
+        {
+            _dbContext.UserRoleAssignments.Remove(assignment);
+            await _dbContext.SaveChangesAsync();
+        }
     }
 }

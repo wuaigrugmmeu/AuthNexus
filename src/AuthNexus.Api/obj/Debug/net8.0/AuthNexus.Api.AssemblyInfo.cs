@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AuthNexus.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c050dfd51ed9d05e3f87bbdfbc80f96a7767f71c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7cdc5f44e421f3a1d6ad4c0bd34c40aaf42196a0")]
 [assembly: System.Reflection.AssemblyProductAttribute("AuthNexus.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AuthNexus.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

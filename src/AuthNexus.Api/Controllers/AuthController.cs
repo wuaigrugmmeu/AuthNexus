@@ -1,75 +1,99 @@
-using AuthNexus.Application.Applications;
-using AuthNexus.Application.Common;
+using AuthNexus.Application.Features.Authentication.Commands.Login;
+using AuthNexus.Application.Features.Authentication.Commands.RegisterUser;
+using AuthNexus.Application.Features.Authentication.Dtos;
+using AuthNexus.Application.Features.Authentication.Queries.GetMyProfile;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 
-namespace AuthNexus.Api.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class AuthController : ControllerBase
+namespace AuthNexus.Api.Controllers
 {
-    private readonly IApplicationService _applicationService;
-    private readonly IConfiguration _configuration;
-
-    public AuthController(IApplicationService applicationService, IConfiguration configuration)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class AuthController : ControllerBase
     {
-        _applicationService = applicationService;
-        _configuration = configuration;
-    }
+        private readonly IMediator _mediator;
 
-    [HttpPost("token")]
-    public async Task<ActionResult<string>> GetToken(ApplicationAuthRequest request)
-    {
-        var appResult = await _applicationService.GetApplicationAsync(request.AppUID);
-        if (!appResult.IsSuccess)
+        public AuthController(IMediator mediator)
         {
-            return Unauthorized(ResultDto.Failure("应用不存在"));
+            _mediator = mediator;
         }
 
-        // 验证凭据
-        var validationResult = await _applicationService.ValidateCredentialsAsync(request.AppUID, request.ApiKey, request.ClientSecret);
-        if (!validationResult.IsSuccess || !validationResult.Data)
+        /// <summary>
+        /// 用户登录
+        /// </summary>
+        /// <param name="request">登录请求</param>
+        /// <returns>包含访问令牌的结果</returns>
+        [HttpPost("login")]
+        [ProducesResponseType(typeof(TokenResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Login(LoginRequestDto request)
         {
-            return Unauthorized(ResultDto.Failure("无效的应用凭据"));
+            var command = new LoginCommand
+            {
+                Username = request.Username,
+                Password = request.Password
+            };
+
+            var result = await _mediator.Send(command);
+
+            if (result.IsSuccess)
+            {
+                return Ok(result.Data);
+            }
+
+            return StatusCode(result.ErrorCode ?? 500, new { Message = result.Error });
         }
 
-        // 生成JWT令牌
-        var token = GenerateJwtToken(appResult.Data);
-        return Ok(new { token });
-    }
-
-    private string GenerateJwtToken(ApplicationDto app)
-    {
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]));
-        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-        var claims = new[]
+        /// <summary>
+        /// 用户注册
+        /// </summary>
+        /// <param name="request">注册请求</param>
+        /// <returns>包含用户信息的结果</returns>
+        [HttpPost("register")]
+        [ProducesResponseType(typeof(UserProfileDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Register(UserRegistrationDto request)
         {
-            new Claim(JwtRegisteredClaimNames.Sub, app.AppUID),
-            new Claim("appId", app.Id.ToString()),
-            new Claim("appName", app.Name),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
+            var command = new RegisterUserCommand
+            {
+                Username = request.Username,
+                Email = request.Email,
+                Password = request.Password,
+                ConfirmPassword = request.ConfirmPassword
+            };
 
-        var token = new JwtSecurityToken(
-            issuer: _configuration["JwtSettings:Issuer"],
-            audience: _configuration["JwtSettings:Audience"],
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["JwtSettings:ExpiryMinutes"])),
-            signingCredentials: credentials
-        );
+            var result = await _mediator.Send(command);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+            if (result.IsSuccess)
+            {
+                return CreatedAtAction(nameof(GetMyProfile), result.Data);
+            }
+
+            return StatusCode(result.ErrorCode ?? 500, new { Message = result.Error });
+        }
+
+        /// <summary>
+        /// 获取当前用户个人资料
+        /// </summary>
+        /// <returns>包含用户信息的结果</returns>
+        [HttpGet("profile")]
+        [Authorize]
+        [ProducesResponseType(typeof(UserProfileDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetMyProfile()
+        {
+            var query = new GetMyProfileQuery();
+            var result = await _mediator.Send(query);
+
+            if (result.IsSuccess)
+            {
+                return Ok(result.Data);
+            }
+
+            return StatusCode(result.ErrorCode ?? 500, new { Message = result.Error });
+        }
     }
-}
-
-public class ApplicationAuthRequest
-{
-    public string AppUID { get; set; }
-    public string ApiKey { get; set; }
-    public string ClientSecret { get; set; }
 }

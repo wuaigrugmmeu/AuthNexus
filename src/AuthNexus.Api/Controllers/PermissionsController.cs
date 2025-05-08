@@ -1,11 +1,14 @@
 using AuthNexus.Application.Common;
 using AuthNexus.Application.Permissions;
+using AuthNexus.SharedKernel.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthNexus.Api.Controllers;
 
 [ApiController]
 [Route("api/applications/{applicationId}/[controller]")]
+[Authorize] // 需要用户登录
 public class PermissionsController : ControllerBase
 {
     private readonly IPermissionService _permissionService;
@@ -15,7 +18,11 @@ public class PermissionsController : ControllerBase
         _permissionService = permissionService;
     }
 
+    /// <summary>
+    /// 获取所有权限
+    /// </summary>
     [HttpGet]
+    [Authorize(Policy = PolicyNames.RequirePermission)] // 需要查看权限的权限
     public async Task<ActionResult<IEnumerable<PermissionDefinitionDto>>> GetAllPermissions(Guid applicationId)
     {
         var result = await _permissionService.GetApplicationPermissionsAsync(applicationId.ToString());
@@ -26,10 +33,14 @@ public class PermissionsController : ControllerBase
         return Ok(result.Data);
     }
 
-    [HttpGet("{code}")]
-    public async Task<ActionResult<PermissionDefinitionDto>> GetPermission(Guid applicationId, string code)
+    /// <summary>
+    /// 根据代码获取权限
+    /// </summary>
+    [HttpGet("{permissionCode}")]
+    [Authorize(Policy = PolicyNames.RequirePermission)] // 需要查看权限的权限
+    public async Task<ActionResult<PermissionDefinitionDto>> GetPermission(Guid applicationId, string permissionCode)
     {
-        var result = await _permissionService.GetPermissionAsync(applicationId.ToString(), code);
+        var result = await _permissionService.GetPermissionAsync(applicationId.ToString(), permissionCode);
         if (!result.IsSuccess)
         {
             return NotFound(ResultDto.Failure("权限不存在"));
@@ -37,7 +48,11 @@ public class PermissionsController : ControllerBase
         return Ok(result.Data);
     }
 
+    /// <summary>
+    /// 创建新权限
+    /// </summary>
     [HttpPost]
+    [Authorize(Policy = PolicyNames.RequireAdminRole)] // 需要管理员角色
     public async Task<ActionResult<PermissionDefinitionDto>> CreatePermission(Guid applicationId, CreatePermissionRequest request)
     {
         // 确保应用ID匹配
@@ -53,19 +68,23 @@ public class PermissionsController : ControllerBase
         }
 
         return CreatedAtAction(nameof(GetPermission), 
-            new { applicationId = applicationId, code = result.Data.Code }, 
+            new { applicationId = applicationId, permissionCode = result.Data.Code }, 
             result.Data);
     }
 
-    [HttpPut("{code}")]
-    public async Task<ActionResult<PermissionDefinitionDto>> UpdatePermission(Guid applicationId, string code, UpdatePermissionRequest request)
+    /// <summary>
+    /// 更新权限
+    /// </summary>
+    [HttpPut("{permissionCode}")]
+    [Authorize(Policy = PolicyNames.RequireAdminRole)] // 需要管理员角色
+    public async Task<ActionResult<PermissionDefinitionDto>> UpdatePermission(Guid applicationId, string permissionCode, UpdatePermissionRequest request)
     {
-        if (code != request.Code || applicationId.ToString() != request.ApplicationId)
+        if (permissionCode != request.Code || applicationId.ToString() != request.ApplicationId)
         {
             return BadRequest(ResultDto.Failure("ID不匹配"));
         }
 
-        var result = await _permissionService.UpdatePermissionAsync(applicationId.ToString(), code, request);
+        var result = await _permissionService.UpdatePermissionAsync(applicationId.ToString(), permissionCode, request);
         if (!result.IsSuccess)
         {
             return BadRequest(result);
@@ -74,10 +93,14 @@ public class PermissionsController : ControllerBase
         return Ok(result.Data);
     }
 
-    [HttpDelete("{code}")]
-    public async Task<ActionResult> DeletePermission(Guid applicationId, string code)
+    /// <summary>
+    /// 删除权限
+    /// </summary>
+    [HttpDelete("{permissionCode}")]
+    [Authorize(Policy = PolicyNames.RequireAdminRole)] // 需要管理员角色
+    public async Task<ActionResult> DeletePermission(Guid applicationId, string permissionCode)
     {
-        var result = await _permissionService.DeletePermissionAsync(applicationId.ToString(), code);
+        var result = await _permissionService.DeletePermissionAsync(applicationId.ToString(), permissionCode);
         if (!result.IsSuccess)
         {
             return BadRequest(result);

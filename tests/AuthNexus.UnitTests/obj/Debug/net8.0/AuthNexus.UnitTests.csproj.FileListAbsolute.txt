@@ -103,3 +103,13 @@
 /workspaces/AuthNexus/tests/AuthNexus.UnitTests/obj/Debug/net8.0/AuthNexus.UnitTests.pdb
 /workspaces/AuthNexus/tests/AuthNexus.UnitTests/obj/Debug/net8.0/AuthNexus.UnitTests.genruntimeconfig.cache
 /workspaces/AuthNexus/tests/AuthNexus.UnitTests/obj/Debug/net8.0/ref/AuthNexus.UnitTests.dll
+/workspaces/AuthNexus/tests/AuthNexus.UnitTests/bin/Debug/net8.0/AutoMapper.dll
+/workspaces/AuthNexus/tests/AuthNexus.UnitTests/bin/Debug/net8.0/AutoMapper.Extensions.Microsoft.DependencyInjection.dll
+/workspaces/AuthNexus/tests/AuthNexus.UnitTests/bin/Debug/net8.0/FluentValidation.dll
+/workspaces/AuthNexus/tests/AuthNexus.UnitTests/bin/Debug/net8.0/MediatR.dll
+/workspaces/AuthNexus/tests/AuthNexus.UnitTests/bin/Debug/net8.0/MediatR.Contracts.dll
+/workspaces/AuthNexus/tests/AuthNexus.UnitTests/bin/Debug/net8.0/Microsoft.Extensions.Logging.Abstractions.dll
+/workspaces/AuthNexus/tests/AuthNexus.UnitTests/bin/Debug/net8.0/Microsoft.Extensions.Options.dll
+/workspaces/AuthNexus/tests/AuthNexus.UnitTests/bin/Debug/net8.0/Microsoft.Extensions.Primitives.dll
+/workspaces/AuthNexus/tests/AuthNexus.UnitTests/bin/Debug/net8.0/AuthNexus.SharedKernel.dll
+/workspaces/AuthNexus/tests/AuthNexus.UnitTests/bin/Debug/net8.0/AuthNexus.SharedKernel.pdb

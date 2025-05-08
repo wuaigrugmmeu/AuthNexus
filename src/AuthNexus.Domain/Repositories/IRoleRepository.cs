@@ -5,7 +5,7 @@ namespace AuthNexus.Domain.Repositories;
 /// <summary>
 /// 角色仓储接口
 /// </summary>
-public interface IRoleRepository
+public interface IRoleRepository : IGenericRepository<Role>
 {
     /// <summary>
     /// 根据ID获取角色
@@ -51,4 +51,34 @@ public interface IRoleRepository
     /// 根据ID列表获取多个角色
     /// </summary>
     Task<IEnumerable<Role>> GetByIdsAsync(IEnumerable<Guid> ids);
+    
+    /// <summary>
+    /// 根据名称获取角色
+    /// </summary>
+    Task<Role?> GetByNameAsync(string name);
+    
+    /// <summary>
+    /// 检查角色名称是否已存在
+    /// </summary>
+    Task<bool> ExistsByNameAsync(string name);
+    
+    /// <summary>
+    /// 获取角色的权限
+    /// </summary>
+    Task<IReadOnlyList<Permission>> GetRolePermissionsAsync(Guid roleId);
+    
+    /// <summary>
+    /// 为角色分配权限
+    /// </summary>
+    Task AssignPermissionsToRoleAsync(Guid roleId, List<Guid> permissionIds);
+    
+    /// <summary>
+    /// 移除角色的权限
+    /// </summary>
+    Task RemovePermissionFromRoleAsync(Guid roleId, Guid permissionId);
+    
+    /// <summary>
+    /// 获取拥有此角色的所有用户
+    /// </summary>
+    Task<IReadOnlyList<User>> GetUsersInRoleAsync(Guid roleId);
 }

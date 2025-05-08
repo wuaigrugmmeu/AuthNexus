@@ -1,12 +1,15 @@
 using AuthNexus.Application.Common;
 using AuthNexus.Application.Users;
 using AuthNexus.Application.Permissions;
+using AuthNexus.SharedKernel.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthNexus.Api.Controllers;
 
 [ApiController]
 [Route("api/applications/{applicationId}/[controller]")]
+[Authorize] // 需要用户登录
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
@@ -17,6 +20,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("{externalUserId}")]
+    [Authorize(Policy = PolicyNames.RequirePermission)] // 需要查看用户的权限
     public async Task<ActionResult<UserDto>> GetUser(Guid applicationId, string externalUserId)
     {
         var result = await _userService.GetUserAsync(applicationId.ToString(), externalUserId);
@@ -28,6 +32,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost("{externalUserId}/roles")]
+    [Authorize(Policy = PolicyNames.RequireAdminRole)] // 需要管理员角色
     public async Task<ActionResult> AssignRolesToUser(Guid applicationId, string externalUserId, AssignRolesToUserRequest request)
     {
         // 确保应用ID和用户ID匹配
@@ -46,6 +51,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpDelete("{externalUserId}/roles/{roleId}")]
+    [Authorize(Policy = PolicyNames.RequireAdminRole)] // 需要管理员角色
     public async Task<ActionResult> RemoveRoleFromUser(Guid applicationId, string externalUserId, Guid roleId)
     {
         var request = new RemoveRolesFromUserRequest
@@ -63,6 +69,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost("{externalUserId}/permissions")]
+    [Authorize(Policy = PolicyNames.RequireAdminRole)] // 需要管理员角色
     public async Task<ActionResult> AssignDirectPermissionsToUser(Guid applicationId, string externalUserId, AssignDirectPermissionsToUserRequest request)
     {
         // 确保应用ID和用户ID匹配
@@ -81,6 +88,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpDelete("{externalUserId}/permissions/{permissionId}")]
+    [Authorize(Policy = PolicyNames.RequireAdminRole)] // 需要管理员角色
     public async Task<ActionResult> RemoveDirectPermissionFromUser(Guid applicationId, string externalUserId, Guid permissionId)
     {
         var request = new RemoveDirectPermissionsFromUserRequest
@@ -98,6 +106,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("{externalUserId}/permissions")]
+    [Authorize(Policy = PolicyNames.RequirePermission)] // 需要查看用户的权限
     public async Task<ActionResult<IEnumerable<PermissionDefinitionDto>>> GetUserPermissions(Guid applicationId, string externalUserId)
     {
         var result = await _userService.GetUserPermissionsAsync(applicationId.ToString(), externalUserId);
@@ -110,6 +119,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost("check-permission")]
+    [Authorize(Policy = PolicyNames.RequirePermission)] // 需要查看用户的权限
     public async Task<ActionResult<bool>> CheckPermission(Guid applicationId, CheckPermissionRequest request)
     {
         var result = await _userService.CheckPermissionAsync(request);

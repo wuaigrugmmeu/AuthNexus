@@ -3,9 +3,9 @@ using AuthNexus.Domain.Entities;
 namespace AuthNexus.Domain.Repositories;
 
 /// <summary>
-/// 用户身份仓储接口
+/// 用户仓储接口
 /// </summary>
-public interface IUserRepository
+public interface IUserRepository : IGenericRepository<User>
 {
     /// <summary>
     /// 根据ID获取用户身份
@@ -56,4 +56,39 @@ public interface IUserRepository
     /// 获取用户所有权限（包括通过角色获得的权限和直接授权的权限）
     /// </summary>
     Task<IEnumerable<PermissionDefinition>> GetAllPermissionsAsync(Guid applicationId, string externalUserId);
+
+    /// <summary>
+    /// 根据用户名或邮箱获取用户
+    /// </summary>
+    Task<User?> GetByUsernameOrEmailAsync(string usernameOrEmail);
+
+    /// <summary>
+    /// 检查用户名是否已存在
+    /// </summary>
+    Task<bool> ExistsByUsernameAsync(string username);
+
+    /// <summary>
+    /// 检查邮箱是否已存在
+    /// </summary>
+    Task<bool> ExistsByEmailAsync(string email);
+
+    /// <summary>
+    /// 获取用户的角色
+    /// </summary>
+    Task<IReadOnlyList<Role>> GetUserRolesAsync(Guid userId);
+
+    /// <summary>
+    /// 获取用户的权限
+    /// </summary>
+    Task<IReadOnlyList<Permission>> GetUserPermissionsAsync(Guid userId);
+
+    /// <summary>
+    /// 为用户分配角色
+    /// </summary>
+    Task AssignRoleToUserAsync(Guid userId, Guid roleId);
+
+    /// <summary>
+    /// 移除用户的角色
+    /// </summary>
+    Task RemoveRoleFromUserAsync(Guid userId, Guid roleId);
 }
