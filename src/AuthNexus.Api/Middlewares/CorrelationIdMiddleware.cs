@@ -18,7 +18,7 @@ namespace AuthNexus.Api.Middlewares
         public async Task InvokeAsync(HttpContext context)
         {
             // 从请求头中获取关联ID，如果没有则生成一个新的
-            string correlationId = context.Request.Headers[CorrelationIdHeaderName];
+            string? correlationId = context.Request.Headers[CorrelationIdHeaderName];
             if (string.IsNullOrEmpty(correlationId))
             {
                 correlationId = Guid.NewGuid().ToString();
