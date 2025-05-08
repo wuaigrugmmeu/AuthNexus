@@ -1,6 +1,5 @@
 using AuthNexus.SharedKernel.Interfaces;
 using Serilog;
-using System;
 
 namespace AuthNexus.Infrastructure.Logging
 {

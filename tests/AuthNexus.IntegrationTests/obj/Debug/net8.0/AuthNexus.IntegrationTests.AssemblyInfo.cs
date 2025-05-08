@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AuthNexus.IntegrationTests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6922024736e204b7496b9b3bef41270969af16c0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4c4906568da6ef83c32ecb5bbcf6bf7e4e49984a")]
 [assembly: System.Reflection.AssemblyProductAttribute("AuthNexus.IntegrationTests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AuthNexus.IntegrationTests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
