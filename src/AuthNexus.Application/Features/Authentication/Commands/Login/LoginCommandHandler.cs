@@ -56,7 +56,8 @@ namespace AuthNexus.Application.Features.Authentication.Commands.Login
             {
                 AccessToken = tokenResponse.AccessToken,
                 RefreshToken = tokenResponse.RefreshToken,
-                ExpiresIn = tokenResponse.ExpiresIn
+                ExpiresIn = tokenResponse.ExpiresIn,
+                UserId = user.Id  // 设置用户ID
             };
 
             return ResultDto<TokenResponseDto>.Success(tokenResponseDto);

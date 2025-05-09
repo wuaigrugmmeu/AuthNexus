@@ -48,7 +48,19 @@ namespace AuthNexus.Api.Extensions
                     ValidIssuer = configuration["JwtSettings:Issuer"],
                     ValidAudience = configuration["JwtSettings:Audience"],
                     IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(configuration["JwtSettings:SecretKey"]))
+                        Encoding.UTF8.GetBytes(configuration["JwtSettings:SecretKey"])),
+                    ClockSkew = TimeSpan.Zero // 设置时钟偏差为零，使令牌在过期时间准确失效
+                };
+                
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        // 输出调试信息，帮助确定令牌是否正确传递
+                        var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+                        Console.WriteLine($"Received token: {token?.Substring(0, Math.Min(20, token?.Length ?? 0))}...");
+                        return Task.CompletedTask;
+                    }
                 };
             });
             

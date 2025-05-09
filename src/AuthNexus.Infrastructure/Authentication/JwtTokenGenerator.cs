@@ -39,13 +39,16 @@ namespace AuthNexus.Infrastructure.Authentication
             {
                 new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()), // 添加标准NameIdentifier声明
                 new Claim(CustomClaimTypes.UserId, userId.ToString()),
+                new Claim(ClaimTypes.Name, username), // 添加标准Name声明
                 new Claim(CustomClaimTypes.UserName, username)
             };
 
             // 添加角色声明
             foreach (var role in roles)
             {
+                claims.Add(new Claim(ClaimTypes.Role, role)); // 添加标准Role声明
                 claims.Add(new Claim(CustomClaimTypes.Role, role));
             }
 
@@ -80,7 +83,8 @@ namespace AuthNexus.Infrastructure.Authentication
             {
                 AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
                 RefreshToken = refreshToken,
-                ExpiresIn = expiryMinutes * 60 // 转换为秒
+                ExpiresIn = expiryMinutes * 60, // 转换为秒
+                UserId = userId // 设置用户ID
             };
         }
 

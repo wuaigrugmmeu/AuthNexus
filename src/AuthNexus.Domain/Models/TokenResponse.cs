@@ -19,5 +19,10 @@ namespace AuthNexus.Domain.Models
         /// 访问令牌过期时间（秒）
         /// </summary>
         public int ExpiresIn { get; set; }
+        
+        /// <summary>
+        /// 用户ID
+        /// </summary>
+        public Guid UserId { get; set; }
     }
 }

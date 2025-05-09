@@ -29,10 +29,11 @@ namespace AuthNexus.Infrastructure.Authorization
             // 获取用户声明中的所有权限
             var permissions = context.User
                 .FindAll(CustomClaimTypes.Permission)
-                .Select(x => x.Value);
+                .Select(x => x.Value)
+                .ToList();
 
             // 检查用户是否具有所需权限
-            if (permissions.Any(x => x == requirement.Permission))
+            if (permissions.Contains(requirement.Permission))
             {
                 context.Succeed(requirement);
             }
@@ -57,16 +58,38 @@ namespace AuthNexus.Infrastructure.Authorization
             // 配置授权策略
             services.AddAuthorization(options =>
             {
-                // 添加基于角色的策略
+                // 添加基于角色的策略，同时支持Admin和super-admin角色
                 options.AddPolicy(PolicyNames.RequireAdminRole, policy =>
-                    policy.RequireRole("Admin"));
+                    policy.RequireAssertion(context => {
+                        var roles = context.User.FindAll(CustomClaimTypes.Role).Select(x => x.Value).ToList();
+                        
+                        // 输出日志以便调试
+                        Console.WriteLine($"用户角色: {string.Join(", ", roles)}");
+                        
+                        return roles.Contains("Admin") || 
+                               roles.Contains("super-admin") || 
+                               roles.Contains("admin");
+                    }));
                 
                 options.AddPolicy(PolicyNames.RequireUserRole, policy =>
-                    policy.RequireRole("User"));
+                    policy.RequireAssertion(context => {
+                        var roles = context.User.FindAll(CustomClaimTypes.Role).Select(x => x.Value).ToList();
+                        return roles.Contains("User") || roles.Contains("viewer");
+                    }));
                 
                 // 添加基于权限的策略，使用工厂模式动态创建
+                // 修改策略配置为至少满足一个权限要求
                 options.AddPolicy(PolicyNames.RequirePermission, policy =>
-                    policy.Requirements.Add(new PermissionRequirement("permissions:view")));
+                    policy.RequireAssertion(context => 
+                    {
+                        var permissions = context.User.FindAll(CustomClaimTypes.Permission).Select(x => x.Value).ToList();
+                        
+                        // 检查用户是否拥有任一所需权限（使用OR逻辑而非AND逻辑）
+                        return permissions.Contains(PermissionConstants.ViewPermissions) || 
+                               permissions.Contains(PermissionConstants.ViewApplications) || 
+                               permissions.Contains(PermissionConstants.ViewRoles) || 
+                               permissions.Contains(PermissionConstants.ViewUsers);
+                    }));
             });
 
             return services;

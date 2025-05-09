@@ -1,0 +1,12 @@
+### 登录测试
+POST http://localhost:5022/api/Auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "Admin@123456"
+}
+
+### 获取个人资料 (登录成功后将JWT令牌粘贴到这里)
+GET http://localhost:5022/api/Auth/profile
+Authorization: Bearer eyJhbGciO...此处粘贴您的令牌...

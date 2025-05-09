@@ -21,7 +21,7 @@ namespace AuthNexus.Api.Controllers
         /// 获取所有应用程序
         /// </summary>
         [HttpGet]
-        [Authorize(Policy = PolicyNames.RequirePermission)] // 需要查看应用的权限
+        [Authorize] // 移除策略要求，只需登录即可访问
         public async Task<ActionResult<IEnumerable<ApplicationDto>>> GetAllApplications()
         {
             var result = await _applicationService.GetAllApplicationsAsync();
@@ -36,7 +36,7 @@ namespace AuthNexus.Api.Controllers
         /// 根据ID获取应用程序
         /// </summary>
         [HttpGet("{id}")]
-        [Authorize(Policy = PolicyNames.RequirePermission)] // 需要查看应用的权限
+        [Authorize] // 移除策略要求，只需登录即可访问
         public async Task<ActionResult<ApplicationDto>> GetApplicationById(Guid id)
         {
             var result = await _applicationService.GetApplicationAsync(id.ToString());

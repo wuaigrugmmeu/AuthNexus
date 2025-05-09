@@ -42,6 +42,16 @@ public class AuthNexusDbContext : DbContext
     /// 用户-直接权限关联表
     /// </summary>
     public DbSet<DomainEntities.UserDirectPermissionAssignment> UserDirectPermissionAssignments { get; set; }
+    
+    /// <summary>
+    /// 权限表（区别于权限定义表）
+    /// </summary>
+    public DbSet<DomainEntities.Permission> Permissions { get; set; }
+    
+    /// <summary>
+    /// 用户表（存储登录凭据）
+    /// </summary>
+    public DbSet<DomainEntities.User> Users { get; set; }
 
     public AuthNexusDbContext(DbContextOptions<AuthNexusDbContext> options) : base(options)
     {
@@ -150,6 +160,24 @@ public class AuthNexusDbContext : DbContext
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // 配置用户-角色关联实体（没有ID的多对多关系）
+        modelBuilder.Entity<DomainEntities.UserRole>(entity =>
+        {
+            entity.ToTable("UserRoles");
+            entity.HasKey(e => new { e.UserId, e.RoleId });
+            
+            // 外键关系
+            entity.HasOne(e => e.User)
+                  .WithMany(u => u.UserRoles)
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+                  
+            entity.HasOne(e => e.Role)
+                  .WithMany()
+                  .HasForeignKey(e => e.RoleId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
         // 配置用户-直接权限关联表
         modelBuilder.Entity<DomainEntities.UserDirectPermissionAssignment>(entity =>
         {
@@ -166,6 +194,78 @@ public class AuthNexusDbContext : DbContext
             entity.HasOne(e => e.PermissionDefinition)
                   .WithMany()
                   .HasForeignKey(e => e.PermissionDefinitionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // 配置权限表
+        modelBuilder.Entity<DomainEntities.Permission>(entity =>
+        {
+            entity.ToTable("Permissions");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.ApplicationId, e.Name }).IsUnique();
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.Group).HasMaxLength(50);
+            entity.Property(e => e.IsSystem).HasDefaultValue(false);
+            
+            // 外键关系
+            entity.HasOne<DomainEntities.Application>()
+                  .WithMany()
+                  .HasForeignKey(e => e.ApplicationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+        
+        // 配置用户表（登录凭据）
+        modelBuilder.Entity<DomainEntities.User>(entity =>
+        {
+            entity.ToTable("Users");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Username).IsUnique();
+            entity.HasIndex(e => e.Email).IsUnique();
+            
+            entity.Property(e => e.Username).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.PasswordHash).IsRequired();
+            entity.Property(e => e.DisplayName).HasMaxLength(100);
+            entity.Property(e => e.PhoneNumber).HasMaxLength(20);
+            entity.Property(e => e.Status).HasDefaultValue(DomainEntities.UserStatus.Active);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.CreatedAt).IsRequired();
+        });
+
+        // 配置角色-权限关联实体（没有ID的多对多关系）
+        modelBuilder.Entity<DomainEntities.RolePermission>(entity =>
+        {
+            entity.ToTable("RolePermissions");
+            entity.HasKey(e => new { e.RoleId, e.PermissionId });
+            
+            // 外键关系
+            entity.HasOne(e => e.Role)
+                  .WithMany(r => r.RolePermissions)
+                  .HasForeignKey(e => e.RoleId)
+                  .OnDelete(DeleteBehavior.Cascade);
+                  
+            entity.HasOne(e => e.Permission)
+                  .WithMany(p => p.RolePermissions)
+                  .HasForeignKey(e => e.PermissionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // 配置用户-直接权限关联实体（没有ID的多对多关系）
+        modelBuilder.Entity<DomainEntities.UserPermission>(entity =>
+        {
+            entity.ToTable("UserPermissions");
+            entity.HasKey(e => new { e.UserId, e.PermissionId });
+            
+            // 外键关系
+            entity.HasOne(e => e.User)
+                  .WithMany(u => u.UserPermissions)
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+                  
+            entity.HasOne(e => e.Permission)
+                  .WithMany(p => p.UserPermissions)
+                  .HasForeignKey(e => e.PermissionId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
     }

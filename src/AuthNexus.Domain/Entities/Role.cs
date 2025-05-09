@@ -42,6 +42,11 @@ public class Role : Entity
     /// </summary>
     private readonly List<RolePermissionAssignment> _permissions = new();
     public IReadOnlyList<RolePermissionAssignment> Permissions => _permissions.AsReadOnly();
+    
+    /// <summary>
+    /// 与RolePermission实体的导航关系
+    /// </summary>
+    public virtual ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
 
     // EF Core所需的无参构造函数
     private Role() { }

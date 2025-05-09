@@ -1,4 +1,5 @@
 using AuthNexus.Domain.Entities;
+using AuthNexus.Domain.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
@@ -13,11 +14,16 @@ public class DbInitializer
 {
     private readonly AuthNexusDbContext _context;
     private readonly ILogger<DbInitializer> _logger;
+    private readonly IPasswordHashingService _passwordHashingService;
 
-    public DbInitializer(AuthNexusDbContext context, ILogger<DbInitializer> logger)
+    public DbInitializer(
+        AuthNexusDbContext context, 
+        ILogger<DbInitializer> logger,
+        IPasswordHashingService passwordHashingService)
     {
         _context = context;
         _logger = logger;
+        _passwordHashingService = passwordHashingService;
     }
 
     /// <summary>
@@ -39,8 +45,11 @@ public class DbInitializer
 
             // 创建测试数据
             await SeedTestDataAsync();
+            
+            // 创建默认用户凭据
+            await CreateDefaultUsers();
 
-            _logger.LogInformation("数据库初始化完成，测试数据已创建。");
+            _logger.LogInformation("数据库初始化完成，测试数据和默认用户已创建。");
         }
         catch (Exception ex)
         {
@@ -92,7 +101,22 @@ public class DbInitializer
             new PermissionDefinition(adminApp.Id, "admin.full", "完全管理权限"),
             new PermissionDefinition(adminApp.Id, "admin.read", "只读管理权限"),
             new PermissionDefinition(adminApp.Id, "admin.user", "用户管理权限"),
-            new PermissionDefinition(adminApp.Id, "admin.app", "应用管理权限")
+            new PermissionDefinition(adminApp.Id, "admin.app", "应用管理权限"),
+            // 添加系统权限常量
+            new PermissionDefinition(adminApp.Id, "users:view", "查看用户"),
+            new PermissionDefinition(adminApp.Id, "users:create", "创建用户"),
+            new PermissionDefinition(adminApp.Id, "users:update", "更新用户"),
+            new PermissionDefinition(adminApp.Id, "users:delete", "删除用户"),
+            new PermissionDefinition(adminApp.Id, "roles:view", "查看角色"),
+            new PermissionDefinition(adminApp.Id, "roles:create", "创建角色"),
+            new PermissionDefinition(adminApp.Id, "roles:update", "更新角色"),
+            new PermissionDefinition(adminApp.Id, "roles:delete", "删除角色"),
+            new PermissionDefinition(adminApp.Id, "permissions:view", "查看权限"),
+            new PermissionDefinition(adminApp.Id, "permissions:assign", "分配权限"),
+            new PermissionDefinition(adminApp.Id, "applications:view", "查看应用"),
+            new PermissionDefinition(adminApp.Id, "applications:create", "创建应用"),
+            new PermissionDefinition(adminApp.Id, "applications:update", "更新应用"),
+            new PermissionDefinition(adminApp.Id, "applications:delete", "删除应用")
         };
 
         await _context.PermissionDefinitions.AddRangeAsync(permissions);
@@ -217,6 +241,85 @@ public class DbInitializer
 
         await _context.UserDirectPermissionAssignments.AddRangeAsync(userDirectPermissions);
         await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// 创建默认用户凭据
+    /// </summary>
+    private async Task CreateDefaultUsers()
+    {
+        try
+        {
+            // 查找管理应用
+            var adminApp = await _context.Applications.FirstOrDefaultAsync(a => a.Name == "管理控制台");
+            if (adminApp == null)
+            {
+                _logger.LogWarning("未找到管理控制台应用，无法创建默认用户的权限");
+                return;
+            }
+            
+            // 查找超级管理员角色
+            var superAdminRole = await _context.Roles.FirstOrDefaultAsync(r => r.ApplicationId == adminApp.Id && r.Name == "super-admin");
+            var viewerRole = await _context.Roles.FirstOrDefaultAsync(r => r.ApplicationId == adminApp.Id && r.Name == "viewer");
+            
+            if (superAdminRole == null || viewerRole == null)
+            {
+                _logger.LogWarning("未找到超级管理员或观察者角色，无法创建默认用户的权限");
+                return;
+            }
+            
+            // 创建超级管理员用户
+            var adminUser = new User
+            {
+                Username = "admin",
+                Email = "admin@authnexus.com",
+                PasswordHash = _passwordHashingService.HashPassword("Admin@123456"),
+                DisplayName = "系统管理员",
+                Status = UserStatus.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            
+            // 创建测试用户
+            var testUser = new User
+            {
+                Username = "test",
+                Email = "test@authnexus.com",
+                PasswordHash = _passwordHashingService.HashPassword("Test@123456"),
+                DisplayName = "测试用户",
+                Status = UserStatus.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            
+            await _context.AddRangeAsync(adminUser, testUser);
+            await _context.SaveChangesAsync();
+            
+            // 为默认用户创建UserIdentity
+            var adminIdentity = new UserIdentity(adminApp.Id, adminUser.Username);
+            var testIdentity = new UserIdentity(adminApp.Id, testUser.Username);
+            
+            await _context.UserIdentities.AddRangeAsync(adminIdentity, testIdentity);
+            await _context.SaveChangesAsync();
+            
+            // 分配角色给用户
+            var userRoles = new List<UserRoleAssignment>
+            {
+                new UserRoleAssignment(adminIdentity.Id, superAdminRole.Id), // admin -> super-admin
+                new UserRoleAssignment(testIdentity.Id, viewerRole.Id)  // test -> viewer
+            };
+            
+            await _context.UserRoleAssignments.AddRangeAsync(userRoles);
+            await _context.SaveChangesAsync();
+            
+            _logger.LogInformation("创建默认用户成功。管理员账号: admin/Admin@123456, 测试账号: test/Test@123456");
+            _logger.LogInformation("已为默认用户分配角色：admin -> super-admin, test -> viewer");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "创建默认用户凭据时发生错误");
+            throw;
+        }
     }
 
     /// <summary>

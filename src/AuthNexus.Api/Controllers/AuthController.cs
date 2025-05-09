@@ -85,15 +85,32 @@ namespace AuthNexus.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetMyProfile()
         {
-            var query = new GetMyProfileQuery();
-            var result = await _mediator.Send(query);
-
-            if (result.IsSuccess)
+            try 
             {
-                return Ok(result.Data);
-            }
+                // 确认当前请求是否包含认证信息
+                if (!HttpContext.User.Identity.IsAuthenticated)
+                {
+                    return Unauthorized(new { Message = "用户未认证" });
+                }
+                
+                var query = new GetMyProfileQuery();
+                var result = await _mediator.Send(query);
 
-            return StatusCode(result.ErrorCode ?? 404, new { Message = result.Error });
+                if (result.IsSuccess)
+                {
+                    return Ok(result.Data);
+                }
+
+                // 如果失败但是没有设置错误代码，默认返回404
+                var statusCode = result.ErrorCode ?? 404;
+                return StatusCode(statusCode, new { Message = result.Error });
+            }
+            catch (Exception ex)
+            {
+                // 记录异常
+                Console.WriteLine($"GetMyProfile exception: {ex.Message}");
+                return StatusCode(500, new { Message = "获取用户资料失败：" + ex.Message });
+            }
         }
     }
 }

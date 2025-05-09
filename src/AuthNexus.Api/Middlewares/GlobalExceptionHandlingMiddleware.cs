@@ -1,6 +1,8 @@
 using System.Net;
+using System.Security.Authentication;
 using AuthNexus.SharedKernel.Exceptions;
 using AuthNexus.SharedKernel.Models;
+using Microsoft.IdentityModel.Tokens;
 using System.Text.Json;
 
 namespace AuthNexus.Api.Middlewares
@@ -64,7 +66,13 @@ namespace AuthNexus.Api.Middlewares
 
         private static int GetStatusCode(Exception exception) => exception switch
         {
+            UnauthorizedException => (int)HttpStatusCode.Unauthorized,
+            ForbiddenException => (int)HttpStatusCode.Forbidden,
+            EntityNotFoundException => (int)HttpStatusCode.NotFound,
+            ValidationException => (int)HttpStatusCode.BadRequest,
             BaseApplicationException baseEx => baseEx.StatusCode,
+            SecurityTokenException => (int)HttpStatusCode.Unauthorized, // 添加JWT令牌异常
+            AuthenticationException => (int)HttpStatusCode.Unauthorized, // 添加认证异常
             _ => (int)HttpStatusCode.InternalServerError
         };
 
