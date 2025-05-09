@@ -233,14 +233,44 @@ public class UserRepository : EFCoreGenericRepository<User>, IUserRepository
     /// </summary>
     public async Task<IReadOnlyList<Role>> GetUserRolesAsync(Guid userId)
     {
-        var roleIds = await _dbContext.UserRoleAssignments
-            .Where(ur => ur.UserIdentityId == userId)
-            .Select(ur => ur.RoleId)
-            .ToListAsync();
+        // 先尝试寻找用户在UserIdentities表中的记录
+        var user = await _dbContext.Users.FindAsync(userId);
+        if (user == null)
+        {
+            Console.WriteLine($"未找到ID为 {userId} 的用户");
+            return new List<Role>();
+        }
+        
+        Console.WriteLine($"找到用户: {user.Username}，尝试查找对应的UserIdentity");
+        
+        // 获取用户的UserIdentity
+        var userIdentity = await _dbContext.UserIdentities
+            .FirstOrDefaultAsync(ui => ui.ExternalUserId == user.Username);
+            
+        if (userIdentity == null)
+        {
+            Console.WriteLine($"未找到用户 {user.Username} 对应的UserIdentity");
+            return new List<Role>();
+        }
+        
+        Console.WriteLine($"找到UserIdentity ID: {userIdentity.Id}");
 
-        return await _dbContext.Roles
+        // 查询用户角色
+        var userRoleAssignments = await _dbContext.UserRoleAssignments
+            .Where(ur => ur.UserIdentityId == userIdentity.Id)
+            .ToListAsync();
+            
+        Console.WriteLine($"找到 {userRoleAssignments.Count} 个角色分配");
+        
+        var roleIds = userRoleAssignments.Select(ur => ur.RoleId).ToList();
+
+        var roles = await _dbContext.Roles
             .Where(r => roleIds.Contains(r.Id))
             .ToListAsync();
+            
+        Console.WriteLine($"找到 {roles.Count} 个角色: {string.Join(", ", roles.Select(r => r.Name))}");
+        
+        return roles;
     }
 
     /// <summary>
@@ -248,15 +278,33 @@ public class UserRepository : EFCoreGenericRepository<User>, IUserRepository
     /// </summary>
     public async Task<IReadOnlyList<Permission>> GetUserPermissionsAsync(Guid userId)
     {
+        // 先尝试寻找用户在Users表中的记录
+        var user = await _dbContext.Users.FindAsync(userId);
+        if (user == null)
+        {
+            Console.WriteLine($"未找到ID为 {userId} 的用户");
+            return new List<Permission>();
+        }
+        
+        // 获取用户的UserIdentity
+        var userIdentity = await _dbContext.UserIdentities
+            .FirstOrDefaultAsync(ui => ui.ExternalUserId == user.Username);
+            
+        if (userIdentity == null)
+        {
+            Console.WriteLine($"未找到用户 {user.Username} 对应的UserIdentity");
+            return new List<Permission>();
+        }
+
         // 获取用户的直接权限ID
         var directPermissionIds = await _dbContext.UserDirectPermissionAssignments
-            .Where(up => up.UserIdentityId == userId)
+            .Where(up => up.UserIdentityId == userIdentity.Id)
             .Select(up => up.PermissionDefinitionId)
             .ToListAsync();
 
         // 获取用户角色的权限ID
         var roleIds = await _dbContext.UserRoleAssignments
-            .Where(ur => ur.UserIdentityId == userId)
+            .Where(ur => ur.UserIdentityId == userIdentity.Id)
             .Select(ur => ur.RoleId)
             .ToListAsync();
 
@@ -267,8 +315,8 @@ public class UserRepository : EFCoreGenericRepository<User>, IUserRepository
 
         // 合并并去重
         var allPermissionIds = directPermissionIds.Union(rolePermissionIds).Distinct();
-
-        return await _dbContext.PermissionDefinitions
+        
+        var permissions = await _dbContext.PermissionDefinitions
             .Where(p => allPermissionIds.Contains(p.Id))
             .Select(p => new Permission
             {
@@ -278,6 +326,10 @@ public class UserRepository : EFCoreGenericRepository<User>, IUserRepository
                 Description = p.Description
             })
             .ToListAsync();
+            
+        Console.WriteLine($"找到 {permissions.Count} 个权限: {string.Join(", ", permissions.Select(p => p.Name))}");
+        
+        return permissions;
     }
 
     /// <summary>

@@ -2,6 +2,7 @@ using AuthNexus.Api.Extensions;
 using AuthNexus.Api.Filters;
 using AuthNexus.Application;
 using AuthNexus.Infrastructure;
+using AuthNexus.Infrastructure.Authorization;
 using AuthNexus.Infrastructure.Data;
 using Microsoft.Extensions.Logging;
 
@@ -21,6 +22,9 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 
 // 添加授权
 builder.Services.AddAuthorization();
+
+// 添加修复的授权策略
+builder.Services.FixPermissionAuthorization();
 
 // 添加控制器，并配置全局过滤器
 builder.Services.AddControllers(options => 

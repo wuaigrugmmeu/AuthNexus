@@ -67,6 +67,15 @@ namespace AuthNexus.Infrastructure.Authentication
                 Console.WriteLine($"Claim type: {claim.Type}, value: {claim.Value}");
             }
             
+            // 如果用户是管理员，自动授予所有权限
+            var roles = GetRoles().Select(r => r.ToLowerInvariant()).ToList();
+            if (roles.Contains("admin") || roles.Contains("super-admin") || roles.Contains("administrator"))
+            {
+                Console.WriteLine($"Admin user automatically granted permission: {permission}");
+                return true;
+            }
+            
+            // 否则检查特定权限
             return _httpContextAccessor.HttpContext.User
                 .FindAll(CustomClaimTypes.Permission)
                 .Any(c => c.Value == permission);

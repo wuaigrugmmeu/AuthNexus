@@ -27,10 +27,19 @@ public class ApplicationRepository : IApplicationRepository
     }
 
     /// <summary>
-    /// 根据AppUID获取应用
+    /// 根据AppUID获取应用，同时支持通过ID查询
     /// </summary>
     public async Task<DomainEntities.Application> GetByAppUidAsync(string appUid)
     {
+        // 尝试将appUid解析为Guid，如果成功则按ID查询
+        if (Guid.TryParse(appUid, out Guid id))
+        {
+            Console.WriteLine($"尝试通过ID查找应用: {appUid}");
+            return await _dbContext.Applications
+                .FirstOrDefaultAsync(a => a.Id == id);
+        }
+        
+        Console.WriteLine($"尝试通过AppUID查找应用: {appUid}");
         return await _dbContext.Applications
             .FirstOrDefaultAsync(a => a.AppUID == appUid);
     }
